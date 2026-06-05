@@ -1,0 +1,14 @@
+.DS_Store
+.idea/
+.vscode/
+
+# ESPHome build and local state
+.esphome/
+build/
+*.bin
+*.elf
+*.map
+*.log
+
+# Local credentials
+secrets.yaml
