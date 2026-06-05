@@ -5,7 +5,6 @@ from esphome.components import i2c, text_sensor
 from .. import pag7660_ns
 
 DEPENDENCIES = ["i2c"]
-MULTI_CONF = True
 
 CONF_GESTURE_MODE = "gesture_mode"
 
@@ -23,14 +22,12 @@ PAG7660TextSensor = pag7660_ns.class_(
 )
 
 CONFIG_SCHEMA = (
-    text_sensor.text_sensor_schema(
-        PAG7660TextSensor,
-        icon="mdi:gesture-swipe",
-    )
+    text_sensor.text_sensor_schema(icon="mdi:gesture-swipe")
     .extend(cv.polling_component_schema("100ms"))
     .extend(i2c.i2c_device_schema(0x68))
     .extend(
         {
+            cv.GenerateID(): cv.declare_id(PAG7660TextSensor),
             cv.Optional(CONF_GESTURE_MODE, default="combined"): cv.enum(
                 GESTURE_MODES, lower=True
             ),
