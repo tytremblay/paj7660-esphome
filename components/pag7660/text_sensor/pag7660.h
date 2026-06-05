@@ -57,6 +57,7 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
     }
 
     esphome::delay(250);
+    ESP_LOGI(TAG, "PAG7660 initialized (id=0x%04X, mode=%u)", chip_id, this->gesture_mode_);
     this->status_clear_warning();
   }
 
@@ -87,10 +88,11 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
 
     this->status_clear_warning();
     const std::string decoded = this->decode_gesture_(frame, OUTPUT_FRAME_SIZE);
-    if (decoded.empty() || decoded == this->last_state_) {
+    if (decoded.empty()) {
       return;
     }
 
+    ESP_LOGD(TAG, "Gesture event: %s", decoded.c_str());
     this->last_state_ = decoded;
     this->publish_state(decoded);
   }
@@ -133,14 +135,18 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
       return "thumb_down";
     }
 
+    ESP_LOGD(TAG, "raw result type=%u cursor_type=%u select=%u rotate=%d", gesture_type, cursor_type, cursor_select,
+             rotate);
+
     switch (gesture_type) {
       case 0:
-        if (cursor_select) {
-          if (cursor_type == 1) return "tap";
-          if (cursor_type == 2) return "grab";
-          if (cursor_type == 3) return "pinch";
+        if (cursor_type == 1) return cursor_select ? "tap" : "cursor_tap";
+        if (cursor_type == 2) return cursor_select ? "grab" : "cursor_grab";
+        if (cursor_type == 3) return cursor_select ? "pinch" : "cursor_pinch";
+        if (cursor_type == 0) {
+          return "type_0";
         }
-        break;
+        return "cursor_unknown";
       case 1:
       case 2:
       case 3:
@@ -174,10 +180,10 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
         return std::string(buffer);
       }
       default:
-        break;
+        char fallback[20];
+        std::snprintf(fallback, sizeof(fallback), "type_%u", gesture_type);
+        return std::string(fallback);
     }
-
-    return "";
   }
   bool clear_frame_ready_() { return this->write_byte(REG_FRAME_READY, 0x00); }
 
