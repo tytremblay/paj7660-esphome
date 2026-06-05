@@ -1,73 +1,53 @@
-substitutions:
-  device_name: pag7660-gesture
-  friendly_name: PAG7660 Gesture Sensor
-  project_name: local.pag7660_gesture
-  project_version: "0.2.0"
-
 esphome:
-  name: ${device_name}
-  friendly_name: ${friendly_name}
-  min_version: 2025.2.0
-  project:
-    name: ${project_name}
-    version: ${project_version}
-
-external_components:
-  - source:
-      type: local
-      path: components
-    components: [pag7660]
+  name: gesture-sensor-1
+  friendly_name: Gesture Sensor 1
 
 esp32:
-  board: esp32dev
+  board: esp32-c6-devkitc-1
   framework:
-    type: arduino
+    type: esp-idf
 
+# Enable logging
 logger:
 
+# Enable Home Assistant API
 api:
   encryption:
-    key: !secret api_encryption_key
+    key: "jxIaGryJgNSyfJ5KQ40QKAUF16KLzWMQMUXH+v027wc="
 
 ota:
   - platform: esphome
-    password: !secret ota_password
+    password: "adf043dc1df0bf2c120f1bfe205dc854"
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "${friendly_name} Fallback Hotspot"
-    password: !secret fallback_ap_password
+    ssid: "Gesture-Sensor-1"
+    password: "9lnauSoOvhh4"
 
 captive_portal:
 
-web_server:
-  port: 80
+# --- NEW PAJ7660 CONFIGURATION BELOW ---
 
+# Pulls in your custom C++ wrapper from GitHub
+external_components:
+  - source: github://tytremblay/paj7660-esphome
+    # Note: If you want to test your code locally before pushing to GitHub, 
+    # comment out the line above and uncomment the line below:
+    # - source: components
+
+# Configures the hardware I2C pins for the XIAO ESP32-C6
 i2c:
-  sda: GPIO21
-  scl: GPIO22
+  id: bus_a
+  sda: GPIO22
+  scl: GPIO23
   scan: true
 
+# Exposes the gestures to Home Assistant
 text_sensor:
   - platform: pag7660
-    name: "${friendly_name} Gesture"
-    gesture_mode: combined
-    update_interval: 100ms
-
-binary_sensor:
-  - platform: status
-    name: "${friendly_name} Status"
-
-sensor:
-  - platform: wifi_signal
-    name: "${friendly_name} WiFi Signal"
-    update_interval: 60s
-  - platform: uptime
-    name: "${friendly_name} Uptime"
-    update_interval: 60s
-
-switch:
-  - platform: restart
-    name: "${friendly_name} Restart"
+    name: "Kitchen Lighting Gestures"
+    i2c_id: bus_a
