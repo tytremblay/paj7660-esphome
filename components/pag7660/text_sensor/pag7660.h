@@ -89,7 +89,11 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
     this->status_clear_warning();
     const std::string decoded = this->decode_gesture_(frame, OUTPUT_FRAME_SIZE);
     if (decoded.empty()) {
+      this->last_state_ = "";  // reset so a repeated gesture in the same direction can fire
       return;
+    }
+    if (decoded == this->last_state_) {
+      return;  // same gesture is still ongoing — suppress within-gesture duplicates
     }
 
     ESP_LOGD(TAG, "Gesture event: %s", decoded.c_str());
@@ -140,13 +144,12 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
 
     switch (gesture_type) {
       case 0:
-        if (cursor_type == 1) return cursor_select ? "tap" : "cursor_tap";
-        if (cursor_type == 2) return cursor_select ? "grab" : "cursor_grab";
-        if (cursor_type == 3) return cursor_select ? "pinch" : "cursor_pinch";
-        if (cursor_type == 0) {
-          return "type_0";
+        if (cursor_select) {
+          if (cursor_type == 1) return "tap";
+          if (cursor_type == 2) return "grab";
+          if (cursor_type == 3) return "pinch";
         }
-        return "cursor_unknown";
+        break;
       case 1:
       case 2:
       case 3:
@@ -180,10 +183,9 @@ class PAG7660TextSensor : public esphome::text_sensor::TextSensor,
         return std::string(buffer);
       }
       default:
-        char fallback[20];
-        std::snprintf(fallback, sizeof(fallback), "type_%u", gesture_type);
-        return std::string(fallback);
+        break;
     }
+    return "";
   }
   bool clear_frame_ready_() { return this->write_byte(REG_FRAME_READY, 0x00); }
 
